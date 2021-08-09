@@ -709,8 +709,9 @@ func Provider() *schema.Provider {
 			"ibm_dl_virtual_connection": resourceIBMDLGatewayVC(),
 			"ibm_dl_provider_gateway":   resourceIBMDLProviderGateway(),
 			//Added for Transit Gateway
-			"ibm_tg_gateway":    resourceIBMTransitGateway(),
-			"ibm_tg_connection": resourceIBMTransitGatewayConnection(),
+			"ibm_tg_gateway":            resourceIBMTransitGateway(),
+			"ibm_tg_connection":         resourceIBMTransitGatewayConnection(),
+			"ibm_tg_connection_actions": resourceIBMTransitGatewayConnectionActions(),
 
 			//Catalog related resources
 			"ibm_cm_offering_instance": resourceIBMCmOfferingInstance(),
@@ -787,6 +788,7 @@ func Validator() ValidatorDict {
 				"ibm_tg_gateway":                          resourceIBMTGValidator(),
 				"ibm_app_config_feature":                  resourceIbmAppConfigFeatureValidator(),
 				"ibm_tg_connection":                       resourceIBMTransitGatewayConnectionValidator(),
+				"ibm_tg_connection_actions":               resourceIBMTransitGatewayConnectionActionsValidator(),
 				"ibm_dl_virtual_connection":               resourceIBMdlGatewayVCValidator(),
 				"ibm_dl_gateway":                          resourceIBMDLGatewayValidator(),
 				"ibm_dl_provider_gateway":                 resourceIBMDLProviderGatewayValidator(),
