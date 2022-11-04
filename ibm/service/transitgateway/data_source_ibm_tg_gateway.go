@@ -13,10 +13,11 @@ import (
 )
 
 const (
-	tgConnName        = "name"
-	tgConnections     = "connections"
-	ID                = "id"
+	tgConnName             = "name"
+	tgConnections          = "connections"
+	ID                     = "id"
 	tgBaseNetworkType = "base_network_type"
+	tgPrefixFiltersDefault = "prefix_filters_default"
 )
 
 func DataSourceIBMTransitGateway() *schema.Resource {
@@ -104,6 +105,59 @@ func DataSourceIBMTransitGateway() *schema.Resource {
 						tgLocalTunnelIp: {
 							Type:     schema.TypeString,
 							Computed: true,
+						},
+						tgPrefixFilters: {
+							Type:        schema.TypeList,
+							Description: "Collection of prefix filters",
+							Computed:    true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									tgID: {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									tgAction: {
+										Type:        schema.TypeString,
+										Computed:    true,
+										Description: "Whether to permit or deny the prefix filter",
+									},
+									tgBefore: {
+										Type:        schema.TypeString,
+										Computed:    true,
+										Description: "Identifier of prefix filter that handles ordering",
+									},
+									tgCreatedAt: {
+										Type:        schema.TypeString,
+										Computed:    true,
+										Description: "The date and time the prefix filter was created",
+									},
+									tgGe: {
+										Type:        schema.TypeInt,
+										Computed:    true,
+										Description: "IP Prefix GE",
+									},
+									tgLe: {
+										Type:        schema.TypeInt,
+										Computed:    true,
+										Description: "IP Prefix LE",
+									},
+									tgPrefix: {
+										Type:        schema.TypeString,
+										Computed:    true,
+										Description: "IP Prefix",
+									},
+									tgUpdatedAt: {
+										Type:        schema.TypeString,
+										Computed:    true,
+										Description: "The date and time that this prefix filter was last updated",
+									},
+								},
+							},
+						},
+						tgPrefixFiltersDefault: {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Default setting of permit or deny which applies to any routes that don't match a specified filter",
 						},
 						tgRemoteBgpAsn: {
 							Type:     schema.TypeInt,
@@ -276,6 +330,35 @@ func dataSourceIBMTransitGatewayConnectionsRead(d *schema.ResourceData, meta int
 		}
 		if instance.Status != nil {
 			tgConn[tgConnectionStatus] = *instance.Status
+		}
+
+		prefixFiltersCollection := make([]map[string]interface{}, 0)
+		for _, prefixFilter := range instance.PrefixFilters {
+			tgPrefixFilter := map[string]interface{}{}
+			tgPrefixFilter[tgID] = prefixFilter.ID
+			tgPrefixFilter[tgAction] = prefixFilter.Action
+			tgPrefixFilter[tgCreatedAt] = prefixFilter.CreatedAt.String()
+			tgPrefixFilter[tgPrefix] = prefixFilter.Prefix
+
+			if prefixFilter.UpdatedAt != nil {
+				tgPrefixFilter[tgUpdatedAt] = prefixFilter.UpdatedAt.String()
+			}
+			if prefixFilter.Before != nil {
+				tgPrefixFilter[tgBefore] = prefixFilter.Before
+			}
+			if prefixFilter.Ge != nil {
+				tgPrefixFilter[tgGe] = prefixFilter.Ge
+			}
+			if prefixFilter.Le != nil {
+				tgPrefixFilter[tgLe] = prefixFilter.Le
+			}
+
+			prefixFiltersCollection = append(prefixFiltersCollection, tgPrefixFilter)
+		}
+		tgConn[tgPrefixFilters] = prefixFiltersCollection
+
+		if instance.PrefixFiltersDefault != nil {
+			tgConn[tgPrefixFiltersDefault] = instance.PrefixFiltersDefault
 		}
 
 		connections = append(connections, tgConn)

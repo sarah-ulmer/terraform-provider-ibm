@@ -123,6 +123,60 @@ func ResourceIBMTransitGatewayConnection() *schema.Resource {
 				ForceNew:    true,
 				Description: "The local tunnel IP address. This field only applies to network type 'gre_tunnel' and 'unbound_gre_tunnel' connections.",
 			},
+			tgPrefixFilters: {
+				Type:        schema.TypeList,
+				Description: "Collection of prefix filters",
+				Computed:    true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						tgID: {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						tgAction: {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Whether to permit or deny the prefix filter",
+						},
+						tgBefore: {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Identifier of prefix filter that handles ordering",
+						},
+						tgCreatedAt: {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The date and time the prefix filter was created",
+						},
+						tgGe: {
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "IP Prefix GE",
+						},
+						tgLe: {
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "IP Prefix LE",
+						},
+						tgPrefix: {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "IP Prefix",
+						},
+						tgUpdatedAt: {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The date and time that this prefix filter was last updated",
+						},
+					},
+				},
+			},
+			tgPrefixFiltersDefault: {
+				Type:         schema.TypeString,
+				Computed:     true,
+				ValidateFunc: validate.InvokeValidator("ibm_tg_connection", tgPrefixFiltersDefault),
+				Description:  "Default setting of permit or deny which applies to any routes that don't match a specified filter",
+			},
 			tgRemoteBgpAsn: {
 				Type:        schema.TypeInt,
 				Optional:    true,
@@ -199,6 +253,12 @@ func ResourceIBMTransitGatewayConnectionValidator() *validate.ResourceValidator 
 			Regexp:                     `^([a-zA-Z]|[a-zA-Z][-_a-zA-Z0-9]*[a-zA-Z0-9])$`,
 			MinValueLength:             1,
 			MaxValueLength:             63})
+	validateSchema = append(validateSchema,
+		validate.ValidateSchema{
+			Identifier:                 tgPrefixFiltersDefault,
+			ValidateFunctionIdentifier: validate.ValidateAllowedStringValue,
+			Type:                       validate.TypeString,
+			AllowedValues:              prefixFiltersDefaultValues})
 
 	ibmTransitGatewayConnectionResourceValidator := validate.ResourceValidator{ResourceName: "ibm_tg_connection", Schema: validateSchema}
 
@@ -263,6 +323,34 @@ func resourceIBMTransitGatewayConnectionCreate(d *schema.ResourceData, meta inte
 		zoneName := d.Get(tgZone).(string)
 		zoneIdentity.Name = &zoneName
 		createTransitGatewayConnectionOptions.SetZone(zoneIdentity)
+	}
+	// Set pf - TODO
+	// var rules []interface{}
+	// if rls, ok := d.GetOk(isNetworkACLRules); ok {
+	// 	rules = rls.([]interface{})
+	// }
+	createPrefixFilters := make([]map[string]interface{}, 0) // Needs to be type []transitgatewayapisv1.TransitGatewayConnectionPrefixFilter
+	if _, ok := d.GetOk(tgPrefixFilters); ok {
+		prefixFiltersCollection := d.Get(tgPrefixFilters).([]interface{})
+		for _, prefixFilter := range prefixFiltersCollection { // Errors - cannot range over prefixFiltersCollection (variable of type interface{})
+
+			tgPrefixFilter := map[string]interface{}{}
+			tgPrefixFilter[tgAction] = prefixFilter[Action]
+			tgPrefixFilter[tgPrefix] = prefixFilter.Prefix
+			if prefixFilter.Ge != nil {
+				tgPrefixFilter[tgGe] = prefixFilter.Ge
+			}
+			if prefixFilter.Le != nil {
+				tgPrefixFilter[tgLe] = prefixFilter.Le
+			}
+			createPrefixFilters = append(createPrefixFilters, tgPrefixFilter)
+		}
+		createTransitGatewayConnectionOptions.SetPrefixFilters(createPrefixFilters)
+	}
+
+	if _, ok := d.GetOk(tgPrefixFiltersDefault); ok {
+		pfDefault := d.Get(tgPrefixFiltersDefault).(string)
+		createTransitGatewayConnectionOptions.SetPrefixFiltersDefault(pfDefault)
 	}
 
 	tgConnections, response, err := client.CreateTransitGatewayConnection(createTransitGatewayConnectionOptions)
@@ -373,6 +461,7 @@ func resourceIBMTransitGatewayConnectionRead(d *schema.ResourceData, meta interf
 	if instance.RequestStatus != nil {
 		d.Set(tgRequestStatus, *instance.RequestStatus)
 	}
+	// TODO - set pf and default pf
 	d.Set(tgConnectionId, *instance.ID)
 	d.Set(tgGatewayId, gatewayId)
 	getTransitGatewayOptions := &transitgatewayapisv1.GetTransitGatewayOptions{
@@ -420,6 +509,7 @@ func resourceIBMTransitGatewayConnectionUpdate(d *schema.ResourceData, meta inte
 			updateTransitGatewayConnectionOptions.Name = &name
 		}
 	}
+	// TODO - can set default pf
 
 	_, response, err = client.UpdateTransitGatewayConnection(updateTransitGatewayConnectionOptions)
 	if err != nil {
