@@ -138,7 +138,7 @@ func ResourceIBMTransitGatewayConnection() *schema.Resource {
 							Computed:    true,
 							Description: "Whether to permit or deny the prefix filter",
 						},
-						tgBefore: {
+						tgBefore: { // TODO - is this needed?
 							Type:        schema.TypeString,
 							Computed:    true,
 							Description: "Identifier of prefix filter that handles ordering",
@@ -329,21 +329,32 @@ func resourceIBMTransitGatewayConnectionCreate(d *schema.ResourceData, meta inte
 	// if rls, ok := d.GetOk(isNetworkACLRules); ok {
 	// 	rules = rls.([]interface{})
 	// }
-	createPrefixFilters := make([]map[string]interface{}, 0) // Needs to be type []transitgatewayapisv1.TransitGatewayConnectionPrefixFilter
+	// createPrefixFilters := make([]map[string]interface{}, 0) // Needs to be type []transitgatewayapisv1.TransitGatewayConnectionPrefixFilter
+	createPrefixFilters := []transitgatewayapisv1.TransitGatewayConnectionPrefixFilter{}
 	if _, ok := d.GetOk(tgPrefixFilters); ok {
-		prefixFiltersCollection := d.Get(tgPrefixFilters).([]interface{})
-		for _, prefixFilter := range prefixFiltersCollection { // Errors - cannot range over prefixFiltersCollection (variable of type interface{})
+		// prefixFiltersCollection := d.Get(tgPrefixFilters).([]interface{})
+		prefixFiltersCollection := d.Get(tgPrefixFilters).([]map[string]interface{}) // ACTION UNDEFINED
+		// prefixFiltersCollection := d.Get(tgPrefixFilters).([]transitgatewayapisv1.TransitGatewayConnectionPrefixFilter{})
+		for _, prefixFilter := range prefixFiltersCollection {
 
-			tgPrefixFilter := map[string]interface{}{}
-			tgPrefixFilter[tgAction] = prefixFilter[Action]
-			tgPrefixFilter[tgPrefix] = prefixFilter.Prefix
-			if prefixFilter.Ge != nil {
-				tgPrefixFilter[tgGe] = prefixFilter.Ge
+			// tgPrefixFilter := &transitgatewayapisv1.TransitGatewayConnectionPrefixFilter{}
+			// tgPrefixFilter[tgAction] = prefixFilter[Action]
+			action := prefixFilter[Action].(string)
+			// cannot index prefixFilter (variable of type interface{})
+
+			// tgPrefixFilter[tgPrefix] = prefixFilter.Prefix
+			// if prefixFilter.Ge != nil {
+			// 	tgPrefixFilter[tgGe] = prefixFilter.Ge
+			// }
+			// if prefixFilter.Le != nil {
+			// 	tgPrefixFilter[tgLe] = prefixFilter.Le
+			// }
+
+			prefixTemplate := transitgatewayapisv1.TransitGatewayConnectionPrefixFilter{
+				Action: &action,
 			}
-			if prefixFilter.Le != nil {
-				tgPrefixFilter[tgLe] = prefixFilter.Le
-			}
-			createPrefixFilters = append(createPrefixFilters, tgPrefixFilter)
+
+			createPrefixFilters = append(createPrefixFilters, prefixTemplate)
 		}
 		createTransitGatewayConnectionOptions.SetPrefixFilters(createPrefixFilters)
 	}
