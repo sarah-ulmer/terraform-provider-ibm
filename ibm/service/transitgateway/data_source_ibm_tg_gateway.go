@@ -16,7 +16,7 @@ const (
 	tgConnName             = "name"
 	tgConnections          = "connections"
 	ID                     = "id"
-	tgBaseNetworkType = "base_network_type"
+	tgBaseNetworkType      = "base_network_type"
 	tgPrefixFiltersDefault = "prefix_filters_default"
 )
 
